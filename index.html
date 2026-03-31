@@ -1,0 +1,653 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>클투 어드민 – 신청 현황 (우측 패널 + 컬럼 선택기)</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Apple SD Gothic Neo','Pretendard',-apple-system,BlinkMacSystemFont,sans-serif;background:#f4f5f7;color:#111827;display:flex;height:100vh;overflow:hidden;font-size:13px;}
+
+/* ── Sidebar ── */
+.sidebar{width:200px;min-width:200px;background:#111827;display:flex;flex-direction:column;height:100vh;overflow-y:auto;flex-shrink:0;}
+.sidebar-logo{padding:24px 20px 20px;font-size:22px;font-weight:800;color:#fff;border-bottom:1px solid #1f2937;}
+.sidebar-user{display:flex;align-items:center;justify-content:space-between;padding:12px 20px;border-bottom:1px solid #1f2937;}
+.sidebar-user-name{font-size:13px;color:#9ca3af;}
+.nav-item{display:flex;align-items:center;padding:9px 20px;font-size:13.5px;color:#9ca3af;cursor:pointer;position:relative;transition:all .15s;}
+.nav-item:hover{background:#1f2937;color:#e5e7eb;}
+.nav-item.active{background:#1f2937;color:#fff;font-weight:600;}
+.nav-item.active::before{content:'';position:absolute;left:0;top:5px;bottom:5px;width:3px;background:#f97316;border-radius:0 2px 2px 0;}
+.nav-item.sub{padding-left:36px;font-size:13px;}
+.nav-divider{height:1px;background:#1f2937;margin:6px 0;}
+
+/* ── Main ── */
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0;}
+
+/* Topbar */
+.topbar{background:#fff;border-bottom:1px solid #e5e7eb;padding:0 28px;height:56px;display:flex;align-items:center;flex-shrink:0;}
+.topbar-back{font-size:13px;color:#6b7280;cursor:pointer;margin-right:14px;display:flex;align-items:center;gap:5px;}
+.topbar-title{font-size:16px;font-weight:700;color:#111827;}
+
+/* Subtabs */
+.subtab-bar{background:#fff;border-bottom:2px solid #e5e7eb;padding:0 28px;display:flex;flex-shrink:0;}
+.subtab{padding:12px 20px;font-size:14px;font-weight:500;color:#6b7280;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;transition:all .15s;}
+.subtab.active{color:#111827;font-weight:700;border-bottom-color:#111827;}
+
+/* ── Body (table + panel) ── */
+.body-area{flex:1;display:flex;overflow:hidden;}
+
+/* ── Table side ── */
+.table-side{flex:1;display:flex;flex-direction:column;overflow:hidden;padding:20px 0 20px 28px;gap:14px;min-width:0;transition:all .3s ease;}
+.table-side.panel-open{padding-right:0;}
+
+/* Control bar */
+.control-bar{display:flex;align-items:center;justify-content:space-between;gap:12px;padding-right:28px;}
+.status-filter{display:flex;align-items:center;background:#f3f4f6;border-radius:10px;padding:4px;gap:2px;}
+.status-btn{display:inline-flex;align-items:center;gap:5px;padding:6px 13px;font-size:13px;font-weight:500;color:#6b7280;border:none;background:none;border-radius:7px;cursor:pointer;transition:all .15s;white-space:nowrap;}
+.status-btn.active{background:#fff;color:#111827;font-weight:700;box-shadow:0 1px 4px rgba(0,0,0,.10);}
+.status-btn .cnt{font-size:11px;font-weight:700;padding:1px 6px;border-radius:12px;background:#e5e7eb;color:#6b7280;}
+.status-btn.active .cnt{background:#111827;color:#fff;}
+.status-btn.danger{color:#dc2626;}
+.status-btn.danger .cnt{background:#fee2e2;color:#dc2626;}
+
+.action-group{display:flex;align-items:center;gap:8px;}
+.sort-select{height:36px;border:1.5px solid #e5e7eb;border-radius:8px;padding:0 30px 0 12px;font-size:13px;color:#374151;background:#fff;appearance:none;cursor:pointer;outline:none;}
+.action-divider{width:1px;height:22px;background:#e5e7eb;flex-shrink:0;}
+.btn-sm{display:inline-flex;align-items:center;gap:5px;height:36px;padding:0 12px;font-size:13px;font-weight:500;color:#374151;background:#fff;border:1.5px solid #e5e7eb;border-radius:8px;cursor:pointer;white-space:nowrap;transition:all .15s;}
+.btn-sm:hover{background:#f9fafb;border-color:#9ca3af;}
+.btn-sm svg{color:#9ca3af;}
+.btn-primary-sm{display:inline-flex;align-items:center;gap:5px;height:36px;padding:0 14px;font-size:13px;font-weight:600;color:#fff;background:#111827;border:none;border-radius:8px;cursor:pointer;white-space:nowrap;}
+.btn-primary-sm:hover{background:#1f2937;}
+
+/* Column picker */
+.col-picker-wrap{position:relative;}
+.col-picker-btn{display:inline-flex;align-items:center;gap:5px;height:36px;padding:0 12px;font-size:13px;font-weight:500;color:#374151;background:#fff;border:1.5px solid #e5e7eb;border-radius:8px;cursor:pointer;transition:all .15s;}
+.col-picker-btn:hover{background:#f3f4f6;}
+.col-picker-btn.active{border-color:#6366f1;color:#6366f1;background:#eef2ff;}
+.col-picker-dropdown{position:absolute;top:calc(100% + 6px);right:0;background:#fff;border:1.5px solid #e5e7eb;border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,.12);width:260px;z-index:100;padding:8px 0;display:none;}
+.col-picker-dropdown.open{display:block;}
+.col-picker-header{padding:10px 16px 8px;font-size:11.5px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.06em;border-bottom:1px solid #f3f4f6;}
+.col-picker-section{padding:8px 0;}
+.col-picker-section-title{padding:6px 16px 4px;font-size:11px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.06em;}
+.col-picker-item{display:flex;align-items:center;justify-content:space-between;padding:7px 16px;cursor:pointer;transition:background .1s;}
+.col-picker-item:hover{background:#f9fafb;}
+.col-picker-item-label{font-size:13px;color:#374151;}
+.col-picker-item-fixed{font-size:11px;color:#9ca3af;}
+.toggle-sm{position:relative;width:32px;height:18px;flex-shrink:0;}
+.toggle-sm input{opacity:0;width:0;height:0;}
+.toggle-sm-slider{position:absolute;inset:0;background:#d1d5db;border-radius:18px;cursor:pointer;transition:background .2s;}
+.toggle-sm-slider::before{content:'';position:absolute;width:12px;height:12px;left:3px;top:3px;background:#fff;border-radius:50%;transition:transform .2s;box-shadow:0 1px 2px rgba(0,0,0,.2);}
+.toggle-sm input:checked+.toggle-sm-slider{background:#6366f1;}
+.toggle-sm input:checked+.toggle-sm-slider::before{transform:translateX(14px);}
+
+/* Table */
+.table-wrap{background:#fff;border:1px solid #e5e7eb;border-radius:12px 0 0 12px;overflow:hidden;flex:1;display:flex;flex-direction:column;transition:border-radius .3s;}
+.table-wrap.panel-open{border-radius:12px 0 0 12px;}
+.table-scroll{overflow-x:auto;overflow-y:auto;flex:1;}
+table{width:100%;border-collapse:collapse;font-size:13px;}
+thead tr{background:#f8f9fb;border-bottom:1.5px solid #e5e7eb;position:sticky;top:0;z-index:10;}
+thead th{padding:11px 14px;text-align:left;font-size:11px;font-weight:700;color:#6b7280;letter-spacing:.04em;text-transform:uppercase;white-space:nowrap;}
+thead th:first-child{padding-left:20px;}
+tbody tr{border-bottom:1px solid #f3f4f6;transition:background .1s;cursor:pointer;}
+tbody tr:last-child{border-bottom:none;}
+tbody tr:hover{background:#f5f7ff;}
+tbody tr.selected{background:#eef2ff;}
+tbody td{padding:14px;color:#374151;vertical-align:middle;white-space:nowrap;}
+tbody td:first-child{padding-left:20px;font-weight:600;color:#111827;}
+.col-hidden{display:none;}
+
+/* row indicator */
+.row-indicator{width:3px;background:#6366f1;position:absolute;left:0;top:4px;bottom:4px;border-radius:2px;}
+
+/* badges */
+.badge{display:inline-flex;align-items:center;padding:3px 9px;border-radius:20px;font-size:11.5px;font-weight:600;white-space:nowrap;}
+.badge-confirmed{background:#dcfce7;color:#15803d;}
+.badge-pending{background:#fef3c7;color:#b45309;}
+.badge-cancelled{background:#fee2e2;color:#dc2626;}
+
+.file-chip{display:inline-flex;align-items:center;gap:4px;padding:3px 8px;border-radius:6px;font-size:11.5px;font-weight:500;background:#f3f4f6;color:#6b7280;}
+.file-chip.ok{background:#f0fdf4;color:#16a34a;}
+.file-chip.missing{background:#fef2f2;color:#dc2626;}
+
+/* ════════════════════════════════════
+   RIGHT SIDE PANEL
+   ════════════════════════════════════ */
+.side-panel{width:0;background:#fff;border-left:1.5px solid #e5e7eb;display:flex;flex-direction:column;overflow:hidden;transition:width .3s ease;flex-shrink:0;}
+.side-panel.open{width:380px;}
+
+.panel-header{padding:16px 20px;border-bottom:1px solid #f3f4f6;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
+.panel-name{font-size:16px;font-weight:700;color:#111827;}
+.panel-badge-wrap{display:flex;align-items:center;gap:8px;}
+.panel-close{width:28px;height:28px;border:none;background:#f3f4f6;border-radius:6px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:#6b7280;transition:background .15s;flex-shrink:0;}
+.panel-close:hover{background:#e5e7eb;}
+
+.panel-body{flex:1;overflow-y:auto;padding:0 0 20px;}
+
+.panel-section{padding:16px 20px 0;}
+.panel-section-title{font-size:11px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.07em;margin-bottom:12px;display:flex;align-items:center;gap:8px;}
+.panel-section-title::after{content:'';flex:1;height:1px;background:#f3f4f6;}
+
+.panel-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:4px;}
+.panel-field{display:flex;flex-direction:column;gap:3px;}
+.panel-field-label{font-size:11px;font-weight:600;color:#9ca3af;}
+.panel-field-value{font-size:13px;color:#111827;font-weight:500;}
+.panel-field-full{grid-column:1/-1;}
+
+/* 파일 업로드 영역 */
+.file-upload-area{display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:#f9fafb;border:1.5px solid #e5e7eb;border-radius:8px;margin-top:8px;}
+.file-upload-info{display:flex;flex-direction:column;gap:2px;}
+.file-upload-name{font-size:12.5px;font-weight:600;color:#374151;}
+.file-upload-meta{font-size:11px;color:#9ca3af;}
+.file-upload-actions{display:flex;gap:6px;}
+.file-btn{width:30px;height:30px;border:1.5px solid #e5e7eb;border-radius:6px;background:#fff;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;color:#6b7280;transition:all .15s;}
+.file-btn:hover{background:#f3f4f6;border-color:#9ca3af;}
+.file-btn.upload-btn{border-color:#6366f1;color:#6366f1;background:#eef2ff;}
+.file-btn.upload-btn:hover{background:#e0e7ff;}
+
+/* 좌석/옵션 태그 */
+.option-tag{display:inline-flex;align-items:center;padding:4px 10px;border-radius:6px;font-size:12px;font-weight:600;background:#f3f4f6;color:#374151;}
+
+/* 패널 하단 액션 */
+.panel-footer{padding:16px 20px;border-top:1px solid #f3f4f6;display:flex;gap:8px;flex-shrink:0;}
+.panel-footer-btn{flex:1;height:38px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;border:1.5px solid #e5e7eb;background:#fff;color:#374151;transition:all .15s;}
+.panel-footer-btn:hover{background:#f9fafb;}
+.panel-footer-btn.primary{background:#111827;color:#fff;border-color:#111827;}
+.panel-footer-btn.primary:hover{background:#1f2937;}
+.panel-footer-btn.danger{color:#dc2626;border-color:#fca5a5;background:#fff5f5;}
+.panel-footer-btn.danger:hover{background:#fee2e2;}
+
+/* 페이지네이션 */
+.pagination-bar{display:flex;align-items:center;justify-content:space-between;padding:12px 20px 0;padding-right:28px;}
+.page-info{font-size:13px;color:#6b7280;}
+.page-btns{display:flex;gap:4px;}
+.page-btn{width:32px;height:32px;border-radius:6px;border:1.5px solid #e5e7eb;background:#fff;font-size:13px;font-weight:500;color:#6b7280;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;transition:all .15s;}
+.page-btn:hover{background:#f3f4f6;}
+.page-btn.active{background:#111827;border-color:#111827;color:#fff;font-weight:700;}
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<aside class="sidebar">
+  <div class="sidebar-logo">cl.too</div>
+  <div class="sidebar-user">
+    <span class="sidebar-user-name">디자인 님</span>
+    <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="#6b7280" stroke-width="2" style="cursor:pointer">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7"/>
+    </svg>
+  </div>
+  <div class="nav-item sub active" style="margin-top:8px">상품</div>
+  <div class="nav-item sub">옵션 관리</div>
+  <div class="nav-item sub">배너</div>
+  <div class="nav-item sub">이벤트</div>
+  <div class="nav-divider"></div>
+  <div class="nav-item">대회 일정</div>
+  <div class="nav-item">매거진</div>
+  <div class="nav-item">쿠폰</div>
+  <div class="nav-item">회원</div>
+  <div class="nav-divider"></div>
+  <div class="nav-item">질문 관리</div>
+  <div class="nav-item">통계</div>
+  <div class="nav-item">APP Push</div>
+  <div class="nav-item">리뷰</div>
+  <div class="nav-item">포인트</div>
+</aside>
+
+<!-- MAIN -->
+<div class="main">
+  <!-- Topbar -->
+  <div class="topbar">
+    <div class="topbar-back">
+      <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
+      상품 목록
+    </div>
+    <span class="topbar-title">2026 골드코스트 런투어 1기 – 4박 6일</span>
+  </div>
+
+  <!-- Sub Tabs -->
+  <div class="subtab-bar">
+    <div class="subtab active">신청 현황</div>
+    <div class="subtab">결제 내역</div>
+    <div class="subtab">루밍 관리</div>
+    <div class="subtab">미결제 신청 현황</div>
+  </div>
+
+  <!-- Body: Table + Panel -->
+  <div class="body-area">
+
+    <!-- TABLE SIDE -->
+    <div class="table-side" id="tableSide">
+
+      <!-- Control Bar -->
+      <div class="control-bar">
+        <!-- 상태 필터 -->
+        <div class="status-filter">
+          <button class="status-btn active">전체 <span class="cnt">31</span></button>
+          <button class="status-btn">신청 완료 <span class="cnt">0</span></button>
+          <button class="status-btn">결제 대기 <span class="cnt">4</span></button>
+          <button class="status-btn">참가 확정 <span class="cnt">27</span></button>
+          <button class="status-btn danger">예약 취소 <span class="cnt">4</span></button>
+        </div>
+        <!-- 액션 그룹 -->
+        <div class="action-group">
+          <select class="sort-select">
+            <option>최근 신청일순</option>
+            <option>이름순</option>
+          </select>
+          <div class="action-divider"></div>
+          <button class="btn-sm">
+            <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+            엑셀 다운로드
+          </button>
+          <button class="btn-sm">신청서 보기</button>
+          <div class="action-divider"></div>
+
+          <!-- ★ 컬럼 선택기 -->
+          <div class="col-picker-wrap">
+            <button class="col-picker-btn" id="colPickerBtn" onclick="toggleColPicker()">
+              <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 0v10"/></svg>
+              컬럼 설정
+            </button>
+            <div class="col-picker-dropdown" id="colPicker">
+              <div class="col-picker-header">표시할 컬럼 선택</div>
+
+              <div class="col-picker-section">
+                <div class="col-picker-section-title">기본 정보 (고정)</div>
+                <div class="col-picker-item">
+                  <span class="col-picker-item-label">이름</span>
+                  <span class="col-picker-item-fixed">고정</span>
+                </div>
+                <div class="col-picker-item">
+                  <span class="col-picker-item-label">주문상태</span>
+                  <span class="col-picker-item-fixed">고정</span>
+                </div>
+              </div>
+
+              <div class="col-picker-section">
+                <div class="col-picker-section-title">선택 컬럼</div>
+                <div class="col-picker-item" onclick="toggleCol('col-order')">
+                  <span class="col-picker-item-label">주문번호</span>
+                  <label class="toggle-sm"><input type="checkbox" id="chk-order" checked onchange="toggleCol('col-order')"><span class="toggle-sm-slider"></span></label>
+                </div>
+                <div class="col-picker-item" onclick="toggleCol('col-name-en')">
+                  <span class="col-picker-item-label">영문 성명</span>
+                  <label class="toggle-sm"><input type="checkbox" id="chk-name-en" checked onchange="toggleCol('col-name-en')"><span class="toggle-sm-slider"></span></label>
+                </div>
+                <div class="col-picker-item" onclick="toggleCol('col-dob')">
+                  <span class="col-picker-item-label">생년월일</span>
+                  <label class="toggle-sm"><input type="checkbox" id="chk-dob" checked onchange="toggleCol('col-dob')"><span class="toggle-sm-slider"></span></label>
+                </div>
+                <div class="col-picker-item" onclick="toggleCol('col-contact')">
+                  <span class="col-picker-item-label">연락처 / 이메일</span>
+                  <label class="toggle-sm"><input type="checkbox" id="chk-contact" checked onchange="toggleCol('col-contact')"><span class="toggle-sm-slider"></span></label>
+                </div>
+                <div class="col-picker-item" onclick="toggleCol('col-passport')">
+                  <span class="col-picker-item-label">여권 정보</span>
+                  <label class="toggle-sm"><input type="checkbox" id="chk-passport" onchange="toggleCol('col-passport')"><span class="toggle-sm-slider"></span></label>
+                </div>
+                <div class="col-picker-item" onclick="toggleCol('col-seat')">
+                  <span class="col-picker-item-label">선호 좌석</span>
+                  <label class="toggle-sm"><input type="checkbox" id="chk-seat" onchange="toggleCol('col-seat')"><span class="toggle-sm-slider"></span></label>
+                </div>
+                <div class="col-picker-item" onclick="toggleCol('col-files')">
+                  <span class="col-picker-item-label">서류 첨부 현황</span>
+                  <label class="toggle-sm"><input type="checkbox" id="chk-files" onchange="toggleCol('col-files')"><span class="toggle-sm-slider"></span></label>
+                </div>
+                <div class="col-picker-item" onclick="toggleCol('col-course')">
+                  <span class="col-picker-item-label">코스 선택</span>
+                  <label class="toggle-sm"><input type="checkbox" id="chk-course" onchange="toggleCol('col-course')"><span class="toggle-sm-slider"></span></label>
+                </div>
+                <div class="col-picker-item" onclick="toggleCol('col-flight')">
+                  <span class="col-picker-item-label">항공권 포함 여부</span>
+                  <label class="toggle-sm"><input type="checkbox" id="chk-flight" onchange="toggleCol('col-flight')"><span class="toggle-sm-slider"></span></label>
+                </div>
+                <div class="col-picker-item" onclick="toggleCol('col-room')">
+                  <span class="col-picker-item-label">숙박 옵션</span>
+                  <label class="toggle-sm"><input type="checkbox" id="chk-room" onchange="toggleCol('col-room')"><span class="toggle-sm-slider"></span></label>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="action-divider"></div>
+          <button class="btn-primary-sm" onclick="openPanel(0)">
+            <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+            수동 예약
+          </button>
+        </div>
+      </div>
+
+      <!-- Table -->
+      <div class="table-wrap" id="tableWrap">
+        <div class="table-scroll">
+          <table>
+            <thead>
+              <tr>
+                <th>이름</th>
+                <th>주문상태</th>
+                <th class="col-order">주문번호</th>
+                <th class="col-name-en">영문 성명</th>
+                <th class="col-dob">생년월일</th>
+                <th class="col-contact">연락처 / 이메일</th>
+                <th class="col-passport col-hidden">여권 정보</th>
+                <th class="col-seat col-hidden">선호 좌석</th>
+                <th class="col-files col-hidden">서류</th>
+                <th class="col-course col-hidden">코스</th>
+                <th class="col-flight col-hidden">항공권</th>
+                <th class="col-room col-hidden">숙박</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr onclick="openPanel(0)" id="row-0">
+                <td>번남현</td>
+                <td><span class="badge badge-confirmed">참가 확정</span></td>
+                <td class="col-order"><span style="font-size:12px;color:#6b7280">CTR20260330KR016<br><span style="font-size:11px;color:#b0b7c3">2026.03.30</span></span></td>
+                <td class="col-name-en">BYUN NAMHYUN</td>
+                <td class="col-dob">1990.05.07 <span style="color:#ec4899;font-size:11px">♀</span></td>
+                <td class="col-contact"><span style="display:block">010-3733-9057</span><span style="font-size:11.5px;color:#9ca3af">nhyunb@naver.com</span></td>
+                <td class="col-passport col-hidden"><span style="font-size:12px;color:#374151">M66409624<br>2029.12.13</span></td>
+                <td class="col-seat col-hidden"><span class="option-tag">WINDOW</span></td>
+                <td class="col-files col-hidden"><span class="file-chip ok">여권✓</span> <span class="file-chip ok">항공✓</span></td>
+                <td class="col-course col-hidden"><span class="option-tag">HALF</span></td>
+                <td class="col-flight col-hidden">포함</td>
+                <td class="col-room col-hidden">2인 1실</td>
+              </tr>
+              <tr onclick="openPanel(1)" id="row-1">
+                <td>이진우</td>
+                <td><span class="badge badge-confirmed">참가 확정</span></td>
+                <td class="col-order"><span style="font-size:12px;color:#6b7280">CTR20260329KR026<br><span style="font-size:11px;color:#b0b7c3">2026.03.29</span></span></td>
+                <td class="col-name-en">LEE JINWOO</td>
+                <td class="col-dob">1987.11.29 <span style="color:#3b82f6;font-size:11px">♂</span></td>
+                <td class="col-contact"><span style="display:block">010-4603-7603</span><span style="font-size:11.5px;color:#9ca3af">position1841@gmail.com</span></td>
+                <td class="col-passport col-hidden"><span style="font-size:12px;color:#374151">M493A6552<br>2032.09.05</span></td>
+                <td class="col-seat col-hidden"><span class="option-tag">WINDOW</span></td>
+                <td class="col-files col-hidden"><span class="file-chip missing">여권✗</span> <span class="file-chip ok">항공✓</span></td>
+                <td class="col-course col-hidden"><span class="option-tag">HALF</span></td>
+                <td class="col-flight col-hidden">포함</td>
+                <td class="col-room col-hidden">2인 1실</td>
+              </tr>
+              <tr onclick="openPanel(2)" id="row-2">
+                <td>허지원</td>
+                <td><span class="badge badge-confirmed">참가 확정</span></td>
+                <td class="col-order"><span style="font-size:12px;color:#6b7280">CTR20260327KR030<br><span style="font-size:11px;color:#b0b7c3">2026.03.27</span></span></td>
+                <td class="col-name-en">HEO JIWON</td>
+                <td class="col-dob">1995.08.14 <span style="color:#ec4899;font-size:11px">♀</span></td>
+                <td class="col-contact"><span style="display:block">010-8668-4860</span><span style="font-size:11.5px;color:#9ca3af">choco814@naver.com</span></td>
+                <td class="col-passport col-hidden"><span style="font-size:12px;color:#374151">M177Q7946<br>2035.12.26</span></td>
+                <td class="col-seat col-hidden"><span class="option-tag">AISLE</span></td>
+                <td class="col-files col-hidden"><span class="file-chip ok">여권✓</span> <span class="file-chip missing">항공✗</span></td>
+                <td class="col-course col-hidden"><span class="option-tag">HALF</span></td>
+                <td class="col-flight col-hidden">포함</td>
+                <td class="col-room col-hidden">2인 1실</td>
+              </tr>
+              <tr onclick="openPanel(3)" id="row-3">
+                <td>김지섭</td>
+                <td><span class="badge badge-confirmed">참가 확정</span></td>
+                <td class="col-order"><span style="font-size:12px;color:#6b7280">CTR20260326KR039<br><span style="font-size:11px;color:#b0b7c3">2026.03.26</span></span></td>
+                <td class="col-name-en">KIM JISUB</td>
+                <td class="col-dob">1988.07.13 <span style="color:#3b82f6;font-size:11px">♂</span></td>
+                <td class="col-contact"><span style="display:block">010-3399-6381</span><span style="font-size:11.5px;color:#9ca3af">aostim9112@naver.com</span></td>
+                <td class="col-passport col-hidden"><span style="font-size:12px;color:#374151">M738S9409<br>2023.04.07</span></td>
+                <td class="col-seat col-hidden"><span class="option-tag">WINDOW</span></td>
+                <td class="col-files col-hidden"><span class="file-chip missing">여권✗</span> <span class="file-chip missing">항공✗</span></td>
+                <td class="col-course col-hidden"><span class="option-tag">미포함</span></td>
+                <td class="col-flight col-hidden">포함</td>
+                <td class="col-room col-hidden">2인 1실</td>
+              </tr>
+              <tr onclick="openPanel(4)" id="row-4">
+                <td>황선송</td>
+                <td><span class="badge badge-confirmed">참가 확정</span></td>
+                <td class="col-order"><span style="font-size:12px;color:#6b7280">CTR20260325KR019<br><span style="font-size:11px;color:#b0b7c3">2026.03.25</span></span></td>
+                <td class="col-name-en">HWANG SEUNSONG</td>
+                <td class="col-dob">1991.04.18 <span style="color:#3b82f6;font-size:11px">♂</span></td>
+                <td class="col-contact"><span style="display:block">010-7226-6537</span><span style="font-size:11.5px;color:#9ca3af">hss9637@daum.net</span></td>
+                <td class="col-passport col-hidden"><span style="font-size:12px;color:#374151">123467890<br>1991.04.18</span></td>
+                <td class="col-seat col-hidden"><span class="option-tag">WINDOW</span></td>
+                <td class="col-files col-hidden"><span class="file-chip ok">여권✓</span> <span class="file-chip ok">항공✓</span></td>
+                <td class="col-course col-hidden"><span class="option-tag">HALF</span></td>
+                <td class="col-flight col-hidden">포함</td>
+                <td class="col-room col-hidden">2인 1실</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Pagination -->
+        <div class="pagination-bar" style="padding:12px 20px;border-top:1px solid #f3f4f6;display:flex;align-items:center;justify-content:space-between;">
+          <span class="page-info">총 31명</span>
+          <div class="page-btns">
+            <button class="page-btn">‹</button>
+            <button class="page-btn active">1</button>
+            <button class="page-btn">2</button>
+            <button class="page-btn">›</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ★★★ RIGHT SIDE PANEL ★★★ -->
+    <div class="side-panel" id="sidePanel">
+      <!-- Panel Header -->
+      <div class="panel-header">
+        <div>
+          <div class="panel-name" id="panelName">번남현</div>
+          <div style="margin-top:4px;display:flex;align-items:center;gap:6px;">
+            <span class="badge badge-confirmed" id="panelStatus">참가 확정</span>
+            <span style="font-size:11.5px;color:#9ca3af" id="panelOrder">CTR20260330KR016</span>
+          </div>
+        </div>
+        <button class="panel-close" onclick="closePanel()">
+          <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+      </div>
+
+      <!-- Panel Body -->
+      <div class="panel-body">
+
+        <!-- 기본 정보 -->
+        <div class="panel-section">
+          <div class="panel-section-title">기본 정보</div>
+          <div class="panel-grid">
+            <div class="panel-field">
+              <span class="panel-field-label">생년월일</span>
+              <span class="panel-field-value" id="p-dob">1990.05.07 ♀</span>
+            </div>
+            <div class="panel-field">
+              <span class="panel-field-label">연락처</span>
+              <span class="panel-field-value" id="p-phone">010-3733-9057</span>
+            </div>
+            <div class="panel-field panel-field-full">
+              <span class="panel-field-label">이메일</span>
+              <span class="panel-field-value" id="p-email">nhyunb@naver.com</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 여행 서류 -->
+        <div class="panel-section" style="margin-top:16px">
+          <div class="panel-section-title">여행 서류</div>
+          <div class="panel-grid">
+            <div class="panel-field">
+              <span class="panel-field-label">여권번호</span>
+              <span class="panel-field-value" id="p-passno">M66409624</span>
+            </div>
+            <div class="panel-field">
+              <span class="panel-field-label">여권 만료일</span>
+              <span class="panel-field-value" id="p-passexp">2029.12.13</span>
+            </div>
+            <div class="panel-field">
+              <span class="panel-field-label">국적</span>
+              <span class="panel-field-value">KR</span>
+            </div>
+            <div class="panel-field">
+              <span class="panel-field-label">주민등록번호</span>
+              <span class="panel-field-value" id="p-resid">900507-2224113</span>
+            </div>
+          </div>
+
+          <!-- 여권 사본 -->
+          <div class="file-upload-area" style="margin-top:12px">
+            <div class="file-upload-info">
+              <span class="file-upload-name">여권 사본</span>
+              <span class="file-upload-meta" id="p-passport-file">passport_BNH.pdf · 2026.03.30 업로드</span>
+            </div>
+            <div class="file-upload-actions">
+              <button class="file-btn" title="업로드">
+                <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+              </button>
+              <button class="file-btn" title="다운로드">
+                <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+              </button>
+              <button class="file-btn" title="삭제" style="color:#dc2626;border-color:#fca5a5;">
+                <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+              </button>
+            </div>
+          </div>
+
+          <!-- 전자항공권 -->
+          <div class="file-upload-area" style="margin-top:8px">
+            <div class="file-upload-info">
+              <span class="file-upload-name">전자항공권</span>
+              <span class="file-upload-meta" id="p-ticket-file">ticket_BNH.pdf · 2026.03.28 업로드</span>
+            </div>
+            <div class="file-upload-actions">
+              <button class="file-btn" title="업로드">
+                <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+              </button>
+              <button class="file-btn" title="다운로드">
+                <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+              </button>
+              <button class="file-btn" title="삭제" style="color:#dc2626;border-color:#fca5a5;">
+                <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 예약 옵션 -->
+        <div class="panel-section" style="margin-top:16px">
+          <div class="panel-section-title">예약 옵션</div>
+          <div class="panel-grid">
+            <div class="panel-field">
+              <span class="panel-field-label">선호 좌석</span>
+              <span class="option-tag" style="margin-top:2px" id="p-seat">WINDOW</span>
+            </div>
+            <div class="panel-field">
+              <span class="panel-field-label">코스 선택</span>
+              <span class="option-tag" style="margin-top:2px" id="p-course">HALF</span>
+            </div>
+            <div class="panel-field">
+              <span class="panel-field-label">항공권 포함</span>
+              <span class="panel-field-value" id="p-flight">포함</span>
+            </div>
+            <div class="panel-field">
+              <span class="panel-field-label">숙박 옵션</span>
+              <span class="panel-field-value" id="p-room">2인 1실</span>
+            </div>
+            <div class="panel-field">
+              <span class="panel-field-label">영문 성명</span>
+              <span class="panel-field-value" id="p-name-en">BYUN NAMHYUN</span>
+            </div>
+            <div class="panel-field">
+              <span class="panel-field-label">일행</span>
+              <span class="panel-field-value" id="p-companion">—</span>
+            </div>
+          </div>
+        </div>
+
+      </div><!-- /panel-body -->
+
+      <!-- Panel Footer -->
+      <div class="panel-footer">
+        <button class="panel-footer-btn danger">예약 취소</button>
+        <button class="panel-footer-btn">메모 추가</button>
+        <button class="panel-footer-btn primary">신청서 보기</button>
+      </div>
+    </div><!-- /side-panel -->
+
+  </div><!-- /body-area -->
+</div><!-- /main -->
+
+<script>
+// ── 데이터 ──────────────────────────────────────────
+const persons = [
+  { name:'번남현', status:'참가 확정', statusClass:'badge-confirmed', order:'CTR20260330KR016', dob:'1990.05.07 ♀', phone:'010-3733-9057', email:'nhyunb@naver.com', passno:'M66409624', passexp:'2029.12.13', resid:'900507-2224113', passFile:'passport_BNH.pdf · 2026.03.30 업로드', ticketFile:'ticket_BNH.pdf · 2026.03.28 업로드', seat:'WINDOW', course:'HALF', flight:'포함', room:'2인 1실', nameEn:'BYUN NAMHYUN', companion:'—' },
+  { name:'이진우', status:'참가 확정', statusClass:'badge-confirmed', order:'CTR20260329KR026', dob:'1987.11.29 ♂', phone:'010-4603-7603', email:'position1841@gmail.com', passno:'M493A6552', passexp:'2032.09.05', resid:'871129-1906810', passFile:'미업로드', ticketFile:'ticket_LJW.pdf · 2026.03.25 업로드', seat:'WINDOW', course:'HALF', flight:'포함', room:'2인 1실', nameEn:'LEE JINWOO', companion:'—' },
+  { name:'허지원', status:'참가 확정', statusClass:'badge-confirmed', order:'CTR20260327KR030', dob:'1995.08.14 ♀', phone:'010-8668-4860', email:'choco814@naver.com', passno:'M177Q7946', passexp:'2035.12.26', resid:'950814-2236411', passFile:'passport_HJW.pdf · 2026.03.22 업로드', ticketFile:'미업로드', seat:'AISLE', course:'HALF', flight:'포함', room:'2인 1실', nameEn:'HEO JIWON', companion:'—' },
+  { name:'김지섭', status:'참가 확정', statusClass:'badge-confirmed', order:'CTR20260326KR039', dob:'1988.07.13 ♂', phone:'010-3399-6381', email:'aostim9112@naver.com', passno:'M738S9409', passexp:'2023.04.07', resid:'880713-1333114', passFile:'미업로드', ticketFile:'미업로드', seat:'WINDOW', course:'미포함', flight:'포함', room:'2인 1실', nameEn:'KIM JISUB', companion:'—' },
+  { name:'황선송', status:'참가 확정', statusClass:'badge-confirmed', order:'CTR20260325KR019', dob:'1991.04.18 ♂', phone:'010-7226-6537', email:'hss9637@daum.net', passno:'123467890', passexp:'1991.04.18', resid:'910418-1652716', passFile:'passport_HSS.pdf · 2026.03.20 업로드', ticketFile:'ticket_HSS.pdf · 2026.03.19 업로드', seat:'WINDOW', course:'HALF', flight:'포함', room:'2인 1실', nameEn:'HWANG SEUNSONG', companion:'오수민' },
+];
+
+let currentRow = -1;
+
+// ── 패널 열기 ────────────────────────────────────────
+function openPanel(idx) {
+  const p = persons[idx];
+  // 이전 선택 해제
+  if (currentRow >= 0) document.getElementById('row-' + currentRow).classList.remove('selected');
+  currentRow = idx;
+  document.getElementById('row-' + idx).classList.add('selected');
+
+  // 데이터 바인딩
+  document.getElementById('panelName').textContent = p.name;
+  document.getElementById('panelStatus').textContent = p.status;
+  document.getElementById('panelStatus').className = 'badge ' + p.statusClass;
+  document.getElementById('panelOrder').textContent = p.order;
+  document.getElementById('p-dob').textContent = p.dob;
+  document.getElementById('p-phone').textContent = p.phone;
+  document.getElementById('p-email').textContent = p.email;
+  document.getElementById('p-passno').textContent = p.passno;
+  document.getElementById('p-passexp').textContent = p.passexp;
+  document.getElementById('p-resid').textContent = p.resid;
+  document.getElementById('p-passport-file').textContent = p.passFile;
+  document.getElementById('p-ticket-file').textContent = p.ticketFile;
+  document.getElementById('p-seat').textContent = p.seat;
+  document.getElementById('p-course').textContent = p.course;
+  document.getElementById('p-flight').textContent = p.flight;
+  document.getElementById('p-room').textContent = p.room;
+  document.getElementById('p-name-en').textContent = p.nameEn;
+  document.getElementById('p-companion').textContent = p.companion;
+
+  // 패널 오픈
+  document.getElementById('sidePanel').classList.add('open');
+  document.getElementById('tableSide').classList.add('panel-open');
+  document.getElementById('tableWrap').style.borderRadius = '12px 0 0 12px';
+}
+
+function closePanel() {
+  if (currentRow >= 0) document.getElementById('row-' + currentRow).classList.remove('selected');
+  currentRow = -1;
+  document.getElementById('sidePanel').classList.remove('open');
+  document.getElementById('tableSide').classList.remove('panel-open');
+  document.getElementById('tableWrap').style.borderRadius = '12px';
+}
+
+// ── 컬럼 선택기 ──────────────────────────────────────
+function toggleColPicker() {
+  const picker = document.getElementById('colPicker');
+  const btn = document.getElementById('colPickerBtn');
+  const isOpen = picker.classList.toggle('open');
+  btn.classList.toggle('active', isOpen);
+}
+
+function toggleCol(cls) {
+  const cells = document.querySelectorAll('.' + cls);
+  const chkId = 'chk-' + cls.replace('col-','');
+  const chk = document.getElementById(chkId);
+  const isVisible = !cells[0].classList.contains('col-hidden');
+
+  cells.forEach(c => c.classList.toggle('col-hidden', isVisible));
+  if (chk) chk.checked = isVisible ? false : true;
+}
+
+// 드롭다운 외부 클릭 시 닫기
+document.addEventListener('click', (e) => {
+  const wrap = document.querySelector('.col-picker-wrap');
+  if (wrap && !wrap.contains(e.target)) {
+    document.getElementById('colPicker').classList.remove('open');
+    document.getElementById('colPickerBtn').classList.remove('active');
+  }
+});
+</script>
+</body>
+</html>
