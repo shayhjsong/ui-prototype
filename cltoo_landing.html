@@ -1,0 +1,899 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>cl.too — 세계의 코스를 함께 달리다</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --accent: #00ffb4;
+    --accent2: #ffdd00;
+    --text: #ffffff;
+    --text-muted: rgba(255,255,255,0.45);
+    --text-sub: rgba(255,255,255,0.7);
+    --bg: #040812;
+    --surface: rgba(255,255,255,0.05);
+    --border: rgba(255,255,255,0.1);
+  }
+
+  html, body {
+    width: 100%; height: 100%;
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Noto Sans KR', sans-serif;
+    overflow: hidden;
+    cursor: default;
+  }
+
+  /* ── NAV ── */
+  nav {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 200;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 22px 52px;
+    background: linear-gradient(to bottom, rgba(4,8,18,0.85) 0%, transparent 100%);
+  }
+  .logo {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 26px;
+    letter-spacing: 1px;
+    color: #fff;
+  }
+  .nav-links {
+    display: flex;
+    gap: 36px;
+    list-style: none;
+  }
+  .nav-links li a {
+    color: var(--text-sub);
+    font-size: 13.5px;
+    font-weight: 400;
+    text-decoration: none;
+    letter-spacing: 0.3px;
+    transition: color 0.2s;
+  }
+  .nav-links li a:hover { color: #fff; }
+  .login-btn {
+    border: 1px solid var(--border);
+    color: #fff;
+    background: transparent;
+    padding: 8px 22px;
+    border-radius: 6px;
+    font-size: 13px;
+    font-family: 'Noto Sans KR', sans-serif;
+    cursor: pointer;
+    transition: background 0.2s, border-color 0.2s;
+  }
+  .login-btn:hover {
+    background: rgba(255,255,255,0.08);
+    border-color: rgba(255,255,255,0.3);
+  }
+
+  /* ── GLOBE CANVAS ── */
+  #globe-wrap {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  #globe { display: block; cursor: grab; }
+  #globe:active { cursor: grabbing; }
+
+  /* ── HEADLINE ── */
+  .headline {
+    position: fixed;
+    left: 52px;
+    bottom: 130px;
+    z-index: 100;
+    pointer-events: none;
+  }
+  .headline-eyebrow {
+    font-size: 11px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 12px;
+    font-weight: 400;
+  }
+  .headline h1 {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 64px;
+    line-height: 1.0;
+    color: #fff;
+    letter-spacing: 1px;
+  }
+  .headline h1 span { color: var(--accent); }
+  .headline p {
+    margin-top: 14px;
+    font-size: 14px;
+    color: var(--text-muted);
+    font-weight: 300;
+    letter-spacing: 0.5px;
+  }
+
+  /* ── COUNTER ── */
+  .counter-bar {
+    position: fixed;
+    right: 52px;
+    bottom: 130px;
+    z-index: 100;
+    text-align: right;
+    pointer-events: none;
+  }
+  .counter-bar .num {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 58px;
+    color: var(--accent2);
+    line-height: 1;
+  }
+  .counter-bar .label {
+    font-size: 11px;
+    color: var(--text-muted);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+  }
+
+  /* ── SCROLL HINT ── */
+  .scroll-hint {
+    position: fixed;
+    bottom: 36px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 100;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    pointer-events: none;
+  }
+  .scroll-hint span {
+    font-size: 11px;
+    color: var(--text-muted);
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+  }
+  .scroll-line {
+    width: 1px;
+    height: 36px;
+    background: rgba(255,255,255,0.1);
+    overflow: hidden;
+    position: relative;
+  }
+  .scroll-line::after {
+    content: '';
+    position: absolute;
+    top: -100%;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(to bottom, transparent, var(--accent), transparent);
+    animation: scrollAnim 2s ease-in-out infinite;
+  }
+  @keyframes scrollAnim { 0%{top:-100%} 100%{top:200%} }
+
+  /* ── TOOLTIP ── */
+  #tooltip {
+    position: fixed;
+    z-index: 500;
+    pointer-events: none;
+    display: none;
+    opacity: 0;
+    transform: translateY(4px);
+    transition: opacity 0.15s, transform 0.15s;
+  }
+  #tooltip.visible {
+    display: block;
+    opacity: 1;
+    transform: translateY(0);
+  }
+  .tip-inner {
+    background: rgba(4,8,18,0.92);
+    border: 1px solid rgba(0,255,180,0.25);
+    border-radius: 14px;
+    padding: 16px 20px;
+    min-width: 200px;
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+  }
+  .tip-country {
+    font-size: 10px;
+    color: var(--accent);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+    font-weight: 400;
+  }
+  .tip-name {
+    font-size: 15px;
+    font-weight: 700;
+    color: #fff;
+    margin-bottom: 8px;
+    line-height: 1.3;
+  }
+  .tip-tag {
+    font-size: 11px;
+    color: rgba(255,255,255,0.6);
+    margin-bottom: 10px;
+  }
+  .tip-cta {
+    font-size: 11px;
+    color: var(--accent);
+    letter-spacing: 1px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+  .tip-cta::after {
+    content: '→';
+    font-size: 13px;
+  }
+
+  /* ── SIDE TOUR LIST ── */
+  .tour-list {
+    position: fixed;
+    right: 52px;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 100;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .tour-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 6px 0;
+    cursor: pointer;
+    opacity: 0.45;
+    transition: opacity 0.2s;
+    text-align: right;
+    flex-direction: row-reverse;
+  }
+  .tour-item:hover, .tour-item.active { opacity: 1; }
+  .tour-item .t-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    transition: transform 0.2s;
+  }
+  .tour-item:hover .t-dot, .tour-item.active .t-dot {
+    transform: scale(1.6);
+  }
+  .tour-item .t-text {
+    font-size: 11.5px;
+    color: var(--text-sub);
+    font-weight: 300;
+    white-space: nowrap;
+  }
+  .tour-item .t-country {
+    font-size: 10px;
+    color: var(--text-muted);
+    display: block;
+    text-align: right;
+  }
+
+  /* ── STAR FIELD (CSS) ── */
+  .stars {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    overflow: hidden;
+  }
+  .star {
+    position: absolute;
+    background: #fff;
+    border-radius: 50%;
+    animation: twinkle linear infinite;
+  }
+  @keyframes twinkle {
+    0%, 100% { opacity: 0.1; }
+    50% { opacity: 0.8; }
+  }
+
+  /* ── MODAL ── */
+  #modal {
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(4,8,18,0.8);
+    backdrop-filter: blur(12px);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s;
+  }
+  #modal.open {
+    opacity: 1;
+    pointer-events: all;
+  }
+  .modal-card {
+    background: #080f20;
+    border: 1px solid rgba(0,255,180,0.2);
+    border-radius: 20px;
+    padding: 40px 44px;
+    max-width: 480px;
+    width: 90%;
+    position: relative;
+    transform: translateY(20px);
+    transition: transform 0.3s;
+  }
+  #modal.open .modal-card { transform: translateY(0); }
+  .modal-close {
+    position: absolute;
+    top: 18px; right: 22px;
+    background: none; border: none;
+    color: var(--text-muted);
+    font-size: 22px;
+    cursor: pointer;
+    line-height: 1;
+    padding: 4px 8px;
+  }
+  .modal-close:hover { color: #fff; }
+  .modal-country {
+    font-size: 10px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 10px;
+  }
+  .modal-name {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 38px;
+    color: #fff;
+    line-height: 1.1;
+    margin-bottom: 10px;
+  }
+  .modal-tag {
+    font-size: 13px;
+    color: var(--text-muted);
+    margin-bottom: 28px;
+  }
+  .modal-details {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+    margin-bottom: 28px;
+  }
+  .modal-detail-item {
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.07);
+    border-radius: 10px;
+    padding: 14px 16px;
+  }
+  .modal-detail-item .d-label {
+    font-size: 10px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    margin-bottom: 5px;
+  }
+  .modal-detail-item .d-val {
+    font-size: 15px;
+    font-weight: 500;
+    color: #fff;
+  }
+  .modal-btn {
+    width: 100%;
+    padding: 15px;
+    background: var(--accent);
+    color: #040812;
+    border: none;
+    border-radius: 10px;
+    font-size: 14px;
+    font-weight: 700;
+    font-family: 'Noto Sans KR', sans-serif;
+    cursor: pointer;
+    letter-spacing: 0.5px;
+    transition: background 0.2s, transform 0.1s;
+  }
+  .modal-btn:hover { background: #00e8a2; }
+  .modal-btn:active { transform: scale(0.99); }
+
+  /* ── LOADING ── */
+  #loading {
+    position: fixed;
+    inset: 0;
+    z-index: 2000;
+    background: var(--bg);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 20px;
+    transition: opacity 0.6s;
+  }
+  #loading.hidden { opacity: 0; pointer-events: none; }
+  .loading-logo {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 36px;
+    letter-spacing: 2px;
+    color: #fff;
+  }
+  .loading-bar-wrap {
+    width: 160px;
+    height: 1px;
+    background: rgba(255,255,255,0.1);
+    position: relative;
+    overflow: hidden;
+  }
+  .loading-bar {
+    position: absolute;
+    left: -100%;
+    top: 0;
+    height: 100%;
+    width: 100%;
+    background: var(--accent);
+    animation: loadBar 1.4s ease forwards;
+  }
+  @keyframes loadBar { 0%{left:-100%} 100%{left:0%} }
+</style>
+</head>
+<body>
+
+<!-- LOADING -->
+<div id="loading">
+  <div class="loading-logo">cl.too</div>
+  <div class="loading-bar-wrap"><div class="loading-bar"></div></div>
+</div>
+
+<!-- STARS -->
+<div class="stars" id="stars"></div>
+
+<!-- NAV -->
+<nav>
+  <div class="logo">cl.too</div>
+  <ul class="nav-links">
+    <li><a href="#">런투어</a></li>
+    <li><a href="#">클투 런투어 후기</a></li>
+    <li><a href="#">스페셜런</a></li>
+    <li><a href="#">대회 일정</a></li>
+    <li><a href="#">매거진</a></li>
+  </ul>
+  <button class="login-btn">로그인</button>
+</nav>
+
+<!-- GLOBE -->
+<div id="globe-wrap">
+  <canvas id="globe"></canvas>
+</div>
+
+<!-- HEADLINE -->
+<div class="headline">
+  <div class="headline-eyebrow">Run Tour · 런투어</div>
+  <h1>세계의 코스를<br><span>함께</span> 달리다</h1>
+  <p>지구를 클릭하고, 당신의 런투어를 찾아보세요</p>
+</div>
+
+<!-- COUNTER -->
+<div class="counter-bar">
+  <div class="num">08</div>
+  <div class="label">Active Destinations</div>
+</div>
+
+<!-- SIDE TOUR LIST -->
+<div class="tour-list" id="tourList"></div>
+
+<!-- SCROLL HINT -->
+<div class="scroll-hint">
+  <span>드래그로 탐색</span>
+  <div class="scroll-line"></div>
+</div>
+
+<!-- TOOLTIP -->
+<div id="tooltip">
+  <div class="tip-inner">
+    <div class="tip-country" id="tip-country"></div>
+    <div class="tip-name" id="tip-name"></div>
+    <div class="tip-tag" id="tip-tag"></div>
+    <div class="tip-cta">상품 보기</div>
+  </div>
+</div>
+
+<!-- MODAL -->
+<div id="modal">
+  <div class="modal-card">
+    <button class="modal-close" id="modalClose">✕</button>
+    <div class="modal-country" id="m-country"></div>
+    <div class="modal-name" id="m-name"></div>
+    <div class="modal-tag" id="m-tag"></div>
+    <div class="modal-details">
+      <div class="modal-detail-item">
+        <div class="d-label">거리</div>
+        <div class="d-val" id="m-dist"></div>
+      </div>
+      <div class="modal-detail-item">
+        <div class="d-label">일정</div>
+        <div class="d-val" id="m-days"></div>
+      </div>
+      <div class="modal-detail-item">
+        <div class="d-label">대회 일정</div>
+        <div class="d-val" id="m-date"></div>
+      </div>
+      <div class="modal-detail-item">
+        <div class="d-label">카테고리</div>
+        <div class="d-val" id="m-cat"></div>
+      </div>
+    </div>
+    <button class="modal-btn" id="m-cta">상품 페이지 바로가기 →</button>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+const TOURS = [
+  {
+    name: "알마티 마라톤",
+    country: "카자흐스탄",
+    tag: "풀마라톤 · 4박6일",
+    dist: "42.195km",
+    days: "4박 6일",
+    date: "2026 하반기",
+    cat: "풀마라톤",
+    lat: 43.2, lon: 76.9,
+    color: "#00ffb4",
+    url: "#almaty"
+  },
+  {
+    name: "오크밸리 힐스 나이트 레이스",
+    country: "한국",
+    tag: "10KM · 당일",
+    dist: "10km",
+    days: "당일",
+    date: "2026.4.4 (토)",
+    cat: "트레일런",
+    lat: 37.3, lon: 127.9,
+    color: "#ffdd00",
+    url: "#oakvalley"
+  },
+  {
+    name: "진안 힐링 런트립",
+    country: "한국",
+    tag: "벚꽃 · 1박2일",
+    dist: "하프마라톤",
+    days: "1박 2일",
+    date: "2026.4.9 ~ 4.10",
+    cat: "힐링런",
+    lat: 35.7, lon: 127.4,
+    color: "#ff88cc",
+    url: "#jinan"
+  },
+  {
+    name: "도쿄 마라톤 투어",
+    country: "일본",
+    tag: "풀마라톤 · 3박4일",
+    dist: "42.195km",
+    days: "3박 4일",
+    date: "2027 예정",
+    cat: "풀마라톤",
+    lat: 35.68, lon: 139.69,
+    color: "#ff6655",
+    url: "#tokyo"
+  },
+  {
+    name: "보스턴 마라톤 투어",
+    country: "미국",
+    tag: "풀마라톤 · 5박7일",
+    dist: "42.195km",
+    days: "5박 7일",
+    date: "2027 예정",
+    cat: "풀마라톤",
+    lat: 42.36, lon: -71.06,
+    color: "#55aaff",
+    url: "#boston"
+  },
+  {
+    name: "베를린 마라톤 투어",
+    country: "독일",
+    tag: "풀마라톤 · 4박6일",
+    dist: "42.195km",
+    days: "4박 6일",
+    date: "2026 하반기",
+    cat: "풀마라톤",
+    lat: 52.52, lon: 13.40,
+    color: "#ffaa44",
+    url: "#berlin"
+  },
+  {
+    name: "시드니 런투어",
+    country: "호주",
+    tag: "하프마라톤 · 3박5일",
+    dist: "21.1km",
+    days: "3박 5일",
+    date: "2026 하반기",
+    cat: "하프마라톤",
+    lat: -33.87, lon: 151.21,
+    color: "#44ffcc",
+    url: "#sydney"
+  },
+  {
+    name: "방콕 나이트 런",
+    country: "태국",
+    tag: "10KM · 2박3일",
+    dist: "10km",
+    days: "2박 3일",
+    date: "2026 하반기",
+    cat: "나이트런",
+    lat: 13.75, lon: 100.52,
+    color: "#ff44bb",
+    url: "#bangkok"
+  },
+];
+
+/* ── STARS ── */
+const starsEl = document.getElementById('stars');
+for (let i = 0; i < 180; i++) {
+  const s = document.createElement('div');
+  s.className = 'star';
+  const size = Math.random() * 2 + 0.5;
+  s.style.cssText = `
+    width:${size}px; height:${size}px;
+    left:${Math.random()*100}%; top:${Math.random()*100}%;
+    animation-duration:${2 + Math.random()*4}s;
+    animation-delay:${Math.random()*4}s;
+  `;
+  starsEl.appendChild(s);
+}
+
+/* ── SIDE LIST ── */
+const tourListEl = document.getElementById('tourList');
+TOURS.forEach((t, i) => {
+  const item = document.createElement('div');
+  item.className = 'tour-item';
+  item.dataset.idx = i;
+  item.innerHTML = `
+    <div class="t-dot" style="background:${t.color}"></div>
+    <div>
+      <div class="t-text">${t.name}</div>
+      <div class="t-country">${t.country}</div>
+    </div>
+  `;
+  item.addEventListener('click', () => openModal(i));
+  tourListEl.appendChild(item);
+});
+
+/* ── THREE.JS GLOBE ── */
+const wrap = document.getElementById('globe-wrap');
+const canvas = document.getElementById('globe');
+let W = wrap.clientWidth, H = wrap.clientHeight;
+canvas.width = W; canvas.height = H;
+
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+renderer.setSize(W, H);
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(42, W / H, 0.1, 100);
+camera.position.z = 2.9;
+
+scene.add(new THREE.AmbientLight(0xffffff, 0.25));
+const sun = new THREE.DirectionalLight(0x99bbff, 1.5);
+sun.position.set(4, 2, 2); scene.add(sun);
+const rim = new THREE.DirectionalLight(0x002244, 0.5);
+rim.position.set(-3, -1, -2); scene.add(rim);
+const accent = new THREE.DirectionalLight(0x00ffb4, 0.15);
+accent.position.set(0, 3, 1); scene.add(accent);
+
+const RADIUS = 1;
+const globeGroup = new THREE.Group();
+scene.add(globeGroup);
+
+/* earth mesh */
+const earthGeo = new THREE.SphereGeometry(RADIUS, 72, 72);
+const txLoader = new THREE.TextureLoader();
+let earthMesh;
+
+function buildEarth(tex) {
+  const mat = tex
+    ? new THREE.MeshPhongMaterial({ map: tex, shininess: 10, specular: new THREE.Color(0x112244) })
+    : new THREE.MeshPhongMaterial({ color: 0x1a3560, shininess: 10 });
+  earthMesh = new THREE.Mesh(earthGeo, mat);
+  globeGroup.add(earthMesh);
+  buildPins();
+}
+
+txLoader.load(
+  'https://unpkg.com/three-globe/example/img/earth-blue-marble.jpg',
+  buildEarth, undefined, () => buildEarth(null)
+);
+
+/* atmosphere glow */
+const atmGeo = new THREE.SphereGeometry(RADIUS * 1.07, 48, 48);
+const atmMat = new THREE.MeshBasicMaterial({
+  color: 0x0044cc, side: THREE.BackSide, transparent: true, opacity: 0.09
+});
+globeGroup.add(new THREE.Mesh(atmGeo, atmMat));
+
+/* lat/lon → 3D */
+function ll2v3(lat, lon, r) {
+  const phi = (90 - lat) * Math.PI / 180;
+  const theta = (lon + 180) * Math.PI / 180;
+  return new THREE.Vector3(
+    -r * Math.sin(phi) * Math.cos(theta),
+     r * Math.cos(phi),
+     r * Math.sin(phi) * Math.sin(theta)
+  );
+}
+
+const pinMeshes = [];
+function buildPins() {
+  TOURS.forEach((t, i) => {
+    const pos = ll2v3(t.lat, t.lon, RADIUS);
+
+    /* dot */
+    const dot = new THREE.Mesh(
+      new THREE.SphereGeometry(0.02, 16, 16),
+      new THREE.MeshBasicMaterial({ color: new THREE.Color(t.color) })
+    );
+    dot.position.copy(pos);
+    dot.userData = { tour: t, idx: i };
+    globeGroup.add(dot);
+
+    /* pulse ring */
+    const ring = new THREE.Mesh(
+      new THREE.RingGeometry(0.028, 0.042, 24),
+      new THREE.MeshBasicMaterial({ color: new THREE.Color(t.color), side: THREE.DoubleSide, transparent: true, opacity: 0.4 })
+    );
+    ring.position.copy(pos);
+    ring.lookAt(pos.clone().multiplyScalar(3));
+    ring.userData = { tour: t, idx: i, isRing: true };
+    globeGroup.add(ring);
+
+    pinMeshes.push(dot, ring);
+  });
+}
+
+/* ── INTERACTION ── */
+let isDrag = false, prevX = 0, prevY = 0;
+let rotY = 0.3, rotX = 0.1, autoSpin = true;
+const raycaster = new THREE.Raycaster();
+const mouse = new THREE.Vector2();
+const tip = document.getElementById('tooltip');
+let hoveredTour = null;
+
+canvas.addEventListener('mousedown', e => {
+  isDrag = true; autoSpin = false;
+  prevX = e.clientX; prevY = e.clientY;
+});
+window.addEventListener('mouseup', () => {
+  isDrag = false;
+  setTimeout(() => autoSpin = true, 3000);
+});
+window.addEventListener('mousemove', e => {
+  if (isDrag) {
+    rotY += (e.clientX - prevX) * 0.005;
+    rotX += (e.clientY - prevY) * 0.005;
+    rotX = Math.max(-1.2, Math.min(1.2, rotX));
+    prevX = e.clientX; prevY = e.clientY;
+    return;
+  }
+  const rect = canvas.getBoundingClientRect();
+  mouse.x = ((e.clientX - rect.left) / W) * 2 - 1;
+  mouse.y = -((e.clientY - rect.top) / H) * 2 + 1;
+  raycaster.setFromCamera(mouse, camera);
+  const hits = raycaster.intersectObjects(pinMeshes);
+  if (hits.length && hits[0].object.userData.tour) {
+    const tour = hits[0].object.userData.tour;
+    hoveredTour = tour;
+    document.getElementById('tip-country').textContent = tour.country;
+    document.getElementById('tip-name').textContent = tour.name;
+    document.getElementById('tip-tag').textContent = tour.tag;
+    tip.style.display = 'block';
+    tip.classList.add('visible');
+    tip.style.left = (e.clientX + 18) + 'px';
+    tip.style.top = (e.clientY - 30) + 'px';
+    canvas.style.cursor = 'pointer';
+  } else {
+    hoveredTour = null;
+    tip.classList.remove('visible');
+    setTimeout(() => { if (!tip.classList.contains('visible')) tip.style.display = 'none'; }, 150);
+    canvas.style.cursor = 'grab';
+  }
+});
+
+canvas.addEventListener('touchstart', e => {
+  isDrag = true; autoSpin = false;
+  prevX = e.touches[0].clientX; prevY = e.touches[0].clientY;
+}, { passive: true });
+window.addEventListener('touchend', () => { isDrag = false; setTimeout(() => autoSpin = true, 3000); });
+window.addEventListener('touchmove', e => {
+  if (!isDrag) return;
+  rotY += (e.touches[0].clientX - prevX) * 0.005;
+  rotX += (e.touches[0].clientY - prevY) * 0.005;
+  rotX = Math.max(-1.2, Math.min(1.2, rotX));
+  prevX = e.touches[0].clientX; prevY = e.touches[0].clientY;
+}, { passive: true });
+
+canvas.addEventListener('click', e => {
+  const rect = canvas.getBoundingClientRect();
+  mouse.x = ((e.clientX - rect.left) / W) * 2 - 1;
+  mouse.y = -((e.clientY - rect.top) / H) * 2 + 1;
+  raycaster.setFromCamera(mouse, camera);
+  const hits = raycaster.intersectObjects(pinMeshes);
+  if (hits.length && hits[0].object.userData.tour) {
+    openModal(hits[0].object.userData.idx);
+  }
+});
+
+/* ── MODAL ── */
+function openModal(idx) {
+  const t = TOURS[idx];
+  document.getElementById('m-country').textContent = t.country;
+  document.getElementById('m-name').textContent = t.name;
+  document.getElementById('m-tag').textContent = t.tag;
+  document.getElementById('m-dist').textContent = t.dist;
+  document.getElementById('m-days').textContent = t.days;
+  document.getElementById('m-date').textContent = t.date;
+  document.getElementById('m-cat').textContent = t.cat;
+  document.getElementById('m-cta').onclick = () => { window.location.href = t.url; };
+  document.getElementById('modal').classList.add('open');
+  autoSpin = false;
+  document.querySelectorAll('.tour-item').forEach(el => el.classList.remove('active'));
+  document.querySelector(`.tour-item[data-idx="${idx}"]`).classList.add('active');
+}
+
+document.getElementById('modalClose').addEventListener('click', () => {
+  document.getElementById('modal').classList.remove('open');
+  document.querySelectorAll('.tour-item').forEach(el => el.classList.remove('active'));
+  setTimeout(() => autoSpin = true, 1000);
+});
+document.getElementById('modal').addEventListener('click', e => {
+  if (e.target === document.getElementById('modal')) {
+    document.getElementById('modal').classList.remove('open');
+    document.querySelectorAll('.tour-item').forEach(el => el.classList.remove('active'));
+    setTimeout(() => autoSpin = true, 1000);
+  }
+});
+
+/* ── RESIZE ── */
+window.addEventListener('resize', () => {
+  W = wrap.clientWidth; H = wrap.clientHeight;
+  canvas.width = W; canvas.height = H;
+  renderer.setSize(W, H);
+  camera.aspect = W / H;
+  camera.updateProjectionMatrix();
+});
+
+/* ── ANIMATE ── */
+let t0 = null;
+function animate(ts) {
+  requestAnimationFrame(animate);
+  if (!t0) t0 = ts;
+  const elapsed = (ts - t0) / 1000;
+  if (autoSpin) rotY += 0.0018;
+  globeGroup.rotation.y = rotY;
+  globeGroup.rotation.x = rotX;
+
+  pinMeshes.forEach((p, i) => {
+    if (p.userData.isRing) {
+      const phase = elapsed * 1.8 + (p.userData.idx || 0) * 0.7;
+      p.scale.setScalar(1 + 0.18 * Math.sin(phase));
+      p.material.opacity = 0.25 + 0.2 * Math.abs(Math.sin(phase));
+    }
+  });
+
+  renderer.render(scene, camera);
+}
+
+/* ── LOADING HIDE ── */
+setTimeout(() => {
+  document.getElementById('loading').classList.add('hidden');
+  setTimeout(() => document.getElementById('loading').remove(), 700);
+}, 1500);
+
+animate();
+</script>
+</body>
+</html>
